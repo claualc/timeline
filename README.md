@@ -157,21 +157,59 @@ sh interface status -> L1 status
 
 ```
 sh interface <interface>> -> L1 and L2 status
+sh interface <i> switchport -> DTP info
 ```
 
-## Vlans
+- See L2 non connected interfaces:
 
-
-- Vlan is not the same as the SVI. This is
 ```
-interface vlan1 != vlan
+Switch1#sh ip interface b
+Interface              IP-Address      OK? Method Status                 Protocol
+Vlan1                  unassigned      YES unset  up                     up
+Vlan0010               192.168.10.1     YES manual administratively down  down
+Vlan0020               192.168.20.2     YES manual up                     up
+FastEthernet0/1        unassigned      YES unset  up                     up
+FastEthernet0/2        unassigned      YES unset  administratively down  down
+FastEthernet0/3        unassigned      YES unset  administratively down  down
+FastEthernet0/4        unassigned      YES unset  administratively down  down
+FastEthernet0/5        unassigned      YES unset  administratively down  down
+FastEthernet0/6        unassigned      YES unset  administratively down  down
+FastEthernet0/7        unassigned      YES unset  administratively down  down
+FastEthernet0/8        unassigned      YES unset  administratively down  down
+FastEthernet0/9        unassigned      YES unset  administratively down  down
+FastEthernet0/10       unassigned      YES unset  administratively down  down
+FastEthernet0/11       unassigned      YES unset  up                     up
+FastEthernet0/12       unassigned      YES unset  up                     up
 
-interface Vlan1 
-    shutdown 
-    ! this is the SVI L3 not the vlan it self
+
+Switch1#sh interfaces status
+Port      Name  Status      Vlan  Duplex Speed  Type
+Fa0/1           connected   trunk a-full a-100  10/100BaseTX
+Fa0/2           disabled    1     auto   auto   10/100BaseTX
+Fa0/3           disabled    1     auto   auto   10/100BaseTX
+Fa0/4           disabled    1     auto   auto   10/100BaseTX
+Fa0/5           disabled    1     auto   auto   10/100BaseTX
+Fa0/6           disabled    1     auto   auto   10/100BaseTX
+Fa0/7           disabled    1     auto   auto   10/100BaseTX
+Fa0/8           disabled    1     auto   auto   10/100BaseTX
+Fa0/9           disabled    1     auto   auto   10/100BaseTX
+Fa0/10          disabled    1     auto   auto   10/100BaseTX
+Fa0/11          connected   10    a-full a-100  10/100BaseTX
+Fa0/12          connected   20    a-full a-100  10/100BaseTX
 ```
 
-- SVI in ç2 switches are important to be able to reach them from managment and ping them
+#### DTP  dynamic trunking protocol (should be disable)
+
+   - AUTO: actively doesn't try trunk, but accepst it
+   - DESIRABLE: tries trunk by default, but accepts access
+   - Will not form trunk with router
+   - to disable DTP negotiations
+```
+(config-if)# switchport nonegotiate
+```
+
+#### VTP
+
 
 ## Routing
 
@@ -186,14 +224,13 @@ interface Vlan1
 
 1. Define topology
 2. Count number of VLANs + 1 mngt (broadcast domains/subnets)
-4. Count IP addresses:
-    2.1. Count number of L3 interfaces per VLAN
-    2.2  Count number of L3 network devices (loopbacks*SVI) mngt
-2.3 Pluss can be the loopbacks wich can be the same as the mngt. All network devices
+3. Count IP addresses:
 
-```
+    3.1. Count number of L3 interfaces per VLAN
 
-```
+    3.2  Count number of L3 network devices (loopbacks*SVI) mngt
+
+4. Pluss can be the loopbacks wich can be the same as the mngt. All network devices
 
 obs: subnets can be assigned sequentially starting from the smallest
 
@@ -204,32 +241,55 @@ Result: number of needed VLANs, IPs and mngs Ips
 1. Design vlans and interfaces + mngmt vlan
 1. Assing mngnt vlan to all devices
 2. Configure vlans 
+
     2.1 in p2p interce by interface setting the proper mask
+
     2.2 in access vlans range of interfaces + uplink 
 
 1. Start by configuring smaller vlans IP by IP. Open the terminal only of the involved devices.
 2. Assing ip, mask and default gateway to PCs
 3. Assign default gateway
-4. Assing SVI middle switches (to manage)
 
-### boson implement ipv4 config
+### Example 1: implement ipv4 config
 
-Desging
+Desing
 1. List vlans, their masks and hosts
+
     1.1 p2p vlans
+
     1.2 access vlans
 
-implement
-2. R1, R2, R2 Assign p2p + loopbacks in routers - gigabitethernet interfaces
-> no test
-3. DSW1, DSW2, DSW3 Assign p2p ips to L3 switches
-> no test
-4. DSW1, DSW2, DSW3, AWS1, AWS2, AWS3, ASW4 vlan1 interfaces
-> no test
-5. DSW1, DSW2, and DSW3 vlans 100, 200, 300, 400
+2. Implementation
+```
+R1, R2, R2 Assign p2p + loopbacks in routers - gigabitethernet interfaces
+
+DSW1, DSW2, DSW3 Assign p2p ips to L3 switches
+
+DSW1, DSW2, DSW3, AWS1, AWS2, AWS3, ASW4 vlan1 interfaces
+
+DSW1, DSW2, and DSW3 vlans 100, 200, 300, 400
     5.1 ip vlan interface in DSW
     5.2 ip and /dg in hosts of vlan
     > ping gateway
+```
+
+### Example 2: implement ipv6 config
+
+```
+router1> ipv6 unicast-config
+(config-if)> ipv6 addresss <ipv6 addr>
+(config-if)> no shut
+```
+- It assigns global unique + local link to interface
+To enable only the local address:
+```
+(config-if)> ipv6 enable
+```
+To enable an automatic global ipv6:
+```
+(config-if)> ipv6 address automatic
+```
+- obs: it also assigns local + global in hosts
 
 ## 3 IPv6
 
@@ -313,7 +373,6 @@ FastEthernet0/3 is up, line protocol is up
     FF02::2
     FF02::1:FF00:1
     FF02::1:FF60:8261
-
 ```
 
 ### Routing
@@ -324,3 +383,41 @@ FastEthernet0/3 is up, line protocol is up
 
 - 300s of item in the mac-address-table
 - CAM is the memory NVRAM (non-volatile ram) is the hard disk
+
+## Vlans
+
+
+- Vlan is not the same as the SVI. This is
+```
+interface vlan1 != vlan
+
+interface Vlan1 
+    shutdown 
+    ! this is the SVI L3 not the vlan it self
+```
+
+- SVI in 2 switches are important to be able to reach them from managment and ping them
+- Vlans cannot overlap
+- PC1 will ping PC2 if they are in the same subnet and vlan
+- Access ports. Avoid the port being able to negotiate trunk
+```
+Switch1#sh vlan b
+
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+1    default                          active    Fa0/2, Fa0/3, Fa0/4, Fa0/5
+                                                Fa0/6, Fa0/7, Fa0/8, Fa0/9
+                                                Fa0/10, Fa0/12
+10   Sales                            active    Fa0/11
+20   HR                               active
+
+1002 fddi-default                     active
+1003 token-ring-default               active
+1004 fddinet-default                  active
+1005 trnet-default                    active
+
+Switch1#
+
+```
+- 30 seconds to converge when vlan change
+- Vlan1 links do no act as trunk. It is just default vlan.
