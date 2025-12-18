@@ -1,13 +1,13 @@
 
 
-## Ethernet 
+## Ethernet
 ![headers](./eth_frame.png)
 
 ```
 PREAMBLE: 7 bits
 SFD: Start Frame Delimiter 1
 ------------------------- not considered
-MAC DEST: 6 
+MAC DEST: 6
 MAC SRC: 6
 TYPE: 2
 *VLAN_TAG 2x2
@@ -22,11 +22,11 @@ FCS: Frame check Sum 4
     - headers: 22 bytes
     - payload: 42 to 1500 bytes
     - MIN: 64 bytes and 1522 max
-    
+
 - CIDR: class inter domain routing, before the network size was infered by the IP. A 0-127 B 128-191 C 192
 ## ARP
 
-- <u>Gratuitous ARP</u>: to update caches without an ARP REQUEST. E/g change of router ip 
+- <u>Gratuitous ARP</u>: to update caches without an ARP REQUEST. E/g change of router ip
 - <u>Prove ARP</u>: SRC.IP empty so it doesn't update the caches
 - <u>Proxy ARP</u>: NAT
 
@@ -43,11 +43,11 @@ clear arp cache -> in L3 (?)
 -  Broadcast domain (vlan) != collision domain (link)
 - L3 devices might not support vlan
 - VLSM : variable lenght subnet masking
-- Router: subinterfaces. Assigns multiple ips to the same interface. 
+- Router: subinterfaces. Assigns multiple ips to the same interface.
     > This allows to define a default gatweay for each VLAN pointing to the same physical interface.
     ```
     By default applies 802.1q encapsulation to the sub-interfaces
-    
+
     interface FastEthernet0/0.22
         encapsulation dot1q 22
         ip address 192.168.8.1 255.255.255.128
@@ -56,7 +56,7 @@ clear arp cache -> in L3 (?)
 
 ## Ath
 
-- secret Vs password: 
+- secret Vs password:
     - secret is encrypted
     - enable secret first option, then fallback to password if present
 - enable Vs vty:
@@ -67,7 +67,7 @@ clear arp cache -> in L3 (?)
 
 - Management setup Vs normal setup: the managment is for the network adm.
 ## OBS
-- Config L3 switch 
+- Config L3 switch
 
 
 ## Configs
@@ -119,7 +119,7 @@ FastEthernet0/1 is down, line protocol is down
 ```
 
 By default:
-- routers are administratively downs/down 
+- routers are administratively downs/down
 - ip fbreif amdministrative down == diasble in status
 - show interfaces status do not work in routers
 
@@ -217,7 +217,7 @@ Fa0/12          connected   20    a-full a-100  10/100BaseTX
 
 ```
 (config) ip routing -> to activate
-(config-if) no switchport 
+(config-if) no switchport
 ```
 
 ### How to desing a network
@@ -240,11 +240,11 @@ Result: number of needed VLANs, IPs and mngs Ips
 
 1. Design vlans and interfaces + mngmt vlan
 1. Assing mngnt vlan to all devices
-2. Configure vlans 
+2. Configure vlans
 
     2.1 in p2p interce by interface setting the proper mask
 
-    2.2 in access vlans range of interfaces + uplink 
+    2.2 in access vlans range of interfaces + uplink
 
 1. Start by configuring smaller vlans IP by IP. Open the terminal only of the involved devices.
 2. Assing ip, mask and default gateway to PCs
@@ -322,15 +322,15 @@ ipv6 unicast-routing
 ```
 - Broadcast domain addresses: Multicast ipv6 scopes by domain or protocol
     - ![ipv6 multicast scopes](./ipv6_multicast_scopes.png)
-- Collision domain addresses: link-local addresses, private for each link. 
+- Collision domain addresses: link-local addresses, private for each link.
 - 2^128 / 2^32 more addresses
 - Extended Unique Identifier: uses a U/L bit to identify if the address is global or either local unique
-    
+
 #### ipv6 addresses types
 - global unicast: need to be reserved
     - XXXX:XXXX:XXXX:SSSS:HHHHH:HHHH:HHHH:HHHH
     - X global unique
-    - S subnet 
+    - S subnet
     - H: Extended Unique Id from MAC address -> no need of DHCP
         - half MAC inter <u>FFFE</u> and invert 7th bit
 ```
@@ -348,7 +348,7 @@ ipv6 unicast-routing
     - <u>FE80::/10</u> (collison domain)
     - <u>auto generated, uses EUID</u> when ipv6 enables in the interface or a global/unique one is set
     - Routers do not forward traffic sent to a link-local address; the traffic stays on the local link
-    
+
 ```
 (config-if)# ipv6 enable
 ```
@@ -379,7 +379,7 @@ FastEthernet0/3 is up, line protocol is up
 - floating route: smaller Administrative Distance to force it on top of others
 - assign /30 to p2p in the exam. Always leave for broadcast and network ip
 
-## MAC 
+## MAC
 
 - 300s of item in the mac-address-table
 - CAM is the memory NVRAM (non-volatile ram) is the hard disk
@@ -391,8 +391,8 @@ FastEthernet0/3 is up, line protocol is up
 ```
 interface vlan1 != vlan
 
-interface Vlan1 
-    shutdown 
+interface Vlan1
+    shutdown
     ! this is the SVI L3 not the vlan it self
 ```
 
@@ -421,3 +421,57 @@ Switch1#
 ```
 - 30 seconds to converge when vlan change
 - Vlan1 links do no act as trunk. It is just default vlan.
+
+
+## DHCP
+```
+shop ip dhcp binging: MAC-IP-VLAN-Interface
+```
+
+- DORA: discovery, offer, request and ACK
+- Server -> Client: Offer can be unicast or broadcast
+- Request <u>is all ways broadcast</u>
+
+- How to setup a local dhcp server in a router:
+```
+ip dhcp excluded-address <from_ip> <to_ip>
+ip dhcp pool <NAME>
+(dhcp-config) network <ip> <CIDR>
+(dhcp-config) dns-server <ip>
+(dhcp-config) domain-name <url> # of the network
+(dhcp-config) default-router <ip>
+(dhcp-config) release <days> <hours> <minutes>
+```
+- Configure ip, via dhcp, in interface:
+```
+(config-if)# ip helper-address <dhcp-server-ip>
+```
+- Config relay
+```
+????
+```
+
+## Security
+
+- First configure interfaces with trust not to loose the uplink. Then activate dhcp snooping filter and arp inspection.
+
+#### Port Security
+
+#### DHCP snooping
+- only filters DHCP msgs
+   - only from the server: OFFER, ACK and NACK
+   - or the rate from the clients
+- by default all interfaces are untrusted
+- normally uplink interfaces are configured as trusted, given that the DHCP server is "upper"
+- security attacks:
+  - exhaustion pool
+  - man in the middle
+
+```
+dhcp snooping # first enable globaly
+dhcp snooping vlan 1 # second enable by vlan
+(config-if) ip dhcp snooping trust
+(config-if) ip dhcp snooping limit rate 1
+```
+
+#### ARP inspection
