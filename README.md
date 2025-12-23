@@ -1,4 +1,7 @@
 
+### Obs
+
+- Test ping from L3 dev: PC and routers not switches.
 
 ## Ethernet
 ![headers](./eth_frame.png)
@@ -24,37 +27,8 @@ FCS: Frame check Sum 4
     - MIN: 64 bytes and 1522 max
 
 - CIDR: class inter domain routing, before the network size was infered by the IP. A 0-127 B 128-191 C 192
-## ARP
 
-- <u>Gratuitous ARP</u>: to update caches without an ARP REQUEST. E/g change of router ip
-- <u>Prove ARP</u>: SRC.IP empty so it doesn't update the caches
-- <u>Proxy ARP</u>: NAT
-
-
-show arp -> L3 devices with ARP cache
-   - includes local interfaces
-   - swL3 Vs router : NAT & tunneling
-sh mac-address-table -> L2 devices with CAM MAc-IP map
-   - local interfaces do not have IP
-clear arp cache -> in L3 (?)
-
-## VLAN
-
--  Broadcast domain (vlan) != collision domain (link)
-- L3 devices might not support vlan
-- VLSM : variable lenght subnet masking
-- Router: subinterfaces. Assigns multiple ips to the same interface.
-    > This allows to define a default gatweay for each VLAN pointing to the same physical interface.
-    ```
-    By default applies 802.1q encapsulation to the sub-interfaces
-
-    interface FastEthernet0/0.22
-        encapsulation dot1q 22
-        ip address 192.168.8.1 255.255.255.128
-    ```
-
-
-## Ath
+## Auth
 
 - secret Vs password:
     - secret is encrypted
@@ -66,8 +40,6 @@ clear arp cache -> in L3 (?)
 ## Startup config
 
 - Management setup Vs normal setup: the managment is for the network adm.
-## OBS
-- Config L3 switch
 
 
 ## Configs
@@ -171,14 +143,6 @@ Vlan0020               192.168.20.2     YES manual up                     up
 FastEthernet0/1        unassigned      YES unset  up                     up
 FastEthernet0/2        unassigned      YES unset  administratively down  down
 FastEthernet0/3        unassigned      YES unset  administratively down  down
-FastEthernet0/4        unassigned      YES unset  administratively down  down
-FastEthernet0/5        unassigned      YES unset  administratively down  down
-FastEthernet0/6        unassigned      YES unset  administratively down  down
-FastEthernet0/7        unassigned      YES unset  administratively down  down
-FastEthernet0/8        unassigned      YES unset  administratively down  down
-FastEthernet0/9        unassigned      YES unset  administratively down  down
-FastEthernet0/10       unassigned      YES unset  administratively down  down
-FastEthernet0/11       unassigned      YES unset  up                     up
 FastEthernet0/12       unassigned      YES unset  up                     up
 
 
@@ -186,30 +150,65 @@ Switch1#sh interfaces status
 Port      Name  Status      Vlan  Duplex Speed  Type
 Fa0/1           connected   trunk a-full a-100  10/100BaseTX
 Fa0/2           disabled    1     auto   auto   10/100BaseTX
-Fa0/3           disabled    1     auto   auto   10/100BaseTX
-Fa0/4           disabled    1     auto   auto   10/100BaseTX
-Fa0/5           disabled    1     auto   auto   10/100BaseTX
-Fa0/6           disabled    1     auto   auto   10/100BaseTX
-Fa0/7           disabled    1     auto   auto   10/100BaseTX
-Fa0/8           disabled    1     auto   auto   10/100BaseTX
-Fa0/9           disabled    1     auto   auto   10/100BaseTX
 Fa0/10          disabled    1     auto   auto   10/100BaseTX
 Fa0/11          connected   10    a-full a-100  10/100BaseTX
 Fa0/12          connected   20    a-full a-100  10/100BaseTX
 ```
 
-#### DTP  dynamic trunking protocol (should be disable)
-
+#### DTP
+- Dynamic trunking protocol (should be disable)
+- To check if trunk is working in an interface.
+    - run on both interafces: <u>sh interface fastethernet 0/1 switchport</u> and verify:
+        - static (trunk/access) or dynamic (auto/desirable)
+        - if access check vlan, if trunk check encapsulation or check if nonnegottiate in the case of one dynamic
+```
+sh interface fastEthernet 0/0 switchport
+sh interfaces trunk
+    will show the trunks formed by neogtiation
+    will show all the "static" trunks
+```
    - AUTO: actively doesn't try trunk, but accepst it
    - DESIRABLE: tries trunk by default, but accepts access
    - Will not form trunk with router
    - to disable DTP negotiations
+   - if interfaces shows in trunk then trunk is formed in both interfaces.
+   - If trunk formed, or access check command 2 config for mismatches. Test ping between end user devices, not betwen switches.
 ```
-(config-if)# switchport nonegotiate
+(config-if)
+  1.  switchport mode access/trunk/dynamic - to set the mode
+
+  2.  switchport trunk - config encapsulation
+      switchport access - config vlan
+      switchport nonnegotiate -> disable DTP
+
+############################################################
+
+Switch1(config-if)#switchport ?
+   access          Set access mode characteristics of the interface
+   mode            Set trunking mode of the interface
+   nonegotiate     Set trunking to nonegotiate
+   port-security   Security related command
+   trunk           Set trunking characteristics of the interface
+
+Switch1(config-if)#switchport mode ?
+   access          Set trunking mode to ACCESS unconditionally
+   dynamic         Set trunking mode to dynamically negotiate access or trunk mode
+   trunk           Set trunking mode to TRUNK unconditionally
+```
+- <u>To debug trunk</u>. To check trunk interfaces. They should not appear in the vlan brief and appear in the trunk.
+```
+sh interfaces trunk
+sh vlan b
 ```
 
 #### VTP
 
+- In an interface there can be different configurations
+    - l1 negotiation: speed and half/full bandwith
+    - mode access/dynamic/trunk
+        - if access select vlan, if dynamic select optional and if trunk select encapsulation
+    - ipv4 and ipv6 addresses: static or dynamic with dhcp
+    - stp ? or port-security
 
 ## Routing
 
@@ -384,7 +383,20 @@ FastEthernet0/3 is up, line protocol is up
 - 300s of item in the mac-address-table
 - CAM is the memory NVRAM (non-volatile ram) is the hard disk
 
-## Vlans
+## VLAN
+
+-  Broadcast domain (vlan) != collision domain (link)
+- L3 devices might not support vlan
+- VLSM : variable lenght subnet masking
+- Router: subinterfaces. Assigns multiple ips to the same interface.
+    > This allows to define a default gatweay for each VLAN pointing to the same physical interface.
+    ```
+    By default applies 802.1q encapsulation to the sub-interfaces
+
+    interface FastEthernet0/0.22
+        encapsulation dot1q 22
+        ip address 192.168.8.1 255.255.255.128
+    ```
 
 
 - Vlan is not the same as the SVI. This is
@@ -425,7 +437,7 @@ Switch1#
 
 ## DHCP
 ```
-shop ip dhcp binging: MAC-IP-VLAN-Interface
+sho ip dhcp binging: MAC-IP-VLAN-Interface
 ```
 
 - DORA: discovery, offer, request and ACK
@@ -474,4 +486,16 @@ dhcp snooping vlan 1 # second enable by vlan
 (config-if) ip dhcp snooping limit rate 1
 ```
 
-#### ARP inspection
+## ARP
+
+- <u>Gratuitous ARP</u>: to update caches without an ARP REQUEST. E/g change of router ip
+- <u>Prove ARP</u>: SRC.IP empty so it doesn't update the caches
+- <u>Proxy ARP</u>: NAT
+
+
+show arp -> L3 devices with ARP cache
+   - includes local interfaces
+   - swL3 Vs router : NAT & tunneling
+sh mac-address-table -> L2 devices with CAM MAc-IP map
+   - local interfaces do not have IP
+clear arp cache -> in L3 (?)
