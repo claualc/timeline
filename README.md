@@ -156,7 +156,7 @@ Fa0/12          connected   20    a-full a-100  10/100BaseTX
 ```
 
 #### DTP
-- Dynamic trunking protocol (should be disable)
+- Dynamic trunking protocol (should be disable) - negotiation
 - To check if trunk is working in an interface.
     - run on both interafces: <u>sh interface fastethernet 0/1 switchport</u> and verify:
         - static (trunk/access) or dynamic (auto/desirable)
@@ -194,7 +194,14 @@ Switch1(config-if)#switchport mode ?
    access          Set trunking mode to ACCESS unconditionally
    dynamic         Set trunking mode to dynamically negotiate access or trunk mode
    trunk           Set trunking mode to TRUNK unconditionally
+
+interface fastethernet 0/11
+    switchport mode trunk
+    switchport trunk encapsulation dot1q
+    switchport nonegotiate
 ```
+- Native vlan: is the one with unttaged traffic.
+- Vlan allowed and native are not exclusive.
 - <u>To debug trunk</u>. To check trunk interfaces. They should not appear in the vlan brief and appear in the trunk.
 ```
 sh interfaces trunk
@@ -499,3 +506,33 @@ show arp -> L3 devices with ARP cache
 sh mac-address-table -> L2 devices with CAM MAc-IP map
    - local interfaces do not have IP
 clear arp cache -> in L3 (?)
+
+### ROAS - Router on a Stick
+
+
+1. Config sub interfaces of router 
+```
+interface FastEthernet0/0.10
+ encapsulation dot1q 10
+ ip address 192.168.10.1 255.255.255.192
+!
+interface FastEthernet0/0.20
+ encapsulation dot1q 20
+ ip address 192.168.20.1 255.255.255.192
+!
+```
+2. Config trunk on switch
+```
+interface FastEthernet0/0
+ switchport mode trunk
+!
+interface FastEthernet0/1
+ switchport mode access
+ switchport access vlan 10
+!
+interface FastEthernet0/2
+ switchport mode access
+ switchport access vlan 20
+!
+```
+3. Route (connected) between VLANs present in router
